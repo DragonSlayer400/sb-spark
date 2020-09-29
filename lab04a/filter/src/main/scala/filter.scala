@@ -22,8 +22,8 @@ object filter {
     spark.sparkContext.getConf.getAll.foreach(x => println("key: " + x._1 + " value: " + x._2))
 
 
-    parsed.filter(col("event_type") === "view").write.partitionBy("date").mode("overwrite").json("visits/view/")
-    parsed.filter(col("event_type") === "buy").write.partitionBy("date").mode("overwrite").json("visits/buy/")
+    parsed.filter(col("event_type") === "view").write.partitionBy("date").mode("overwrite").json(spark.sparkContext.getConf.get("spark.filter.output_dir_prefix") + "/view/")
+    parsed.filter(col("event_type") === "buy").write.partitionBy("date").mode("overwrite").json(spark.sparkContext.getConf.get("spark.filter.output_dir_prefix") + "/buy/")
 
     spark.stop()
 
