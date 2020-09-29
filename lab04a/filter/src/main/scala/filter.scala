@@ -18,8 +18,8 @@ object filter {
     }
     val parsed = spark.read.json(json).select('category,'event_type,'item_id,'item_price,'timestamp, 'uid, getData('timestamp).as("date"))
 
-    parsed.filter(col("event_type") === "view").write.partitionBy("date").mode("overwrite").json("/view/")
-    parsed.filter(col("event_type") === "buy").write.partitionBy("date").mode("overwrite").json("/buy/")
+    parsed.filter(col("event_type") === "view").write.partitionBy("date").mode("overwrite").json("view/")
+    parsed.filter(col("event_type") === "buy").write.partitionBy("date").mode("overwrite").json("buy/")
 
     spark.stop()
 
