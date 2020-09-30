@@ -9,13 +9,10 @@ object filter {
 
 
     val offset = spark.sparkContext.getConf.get("spark.filter.offset")
-    val df = spark.read.format("kafka").option("kafka.bootstrap.servers", "spark-master-1:6667").option("subscribe", "lab04_input_data").option("startingOffsets",if (offset == "earliest") s"$offset" else s""" { "lab04_input_data": {"0": $offset } """).option("failOnDataLoss","false").load()
-    spark.sparkContext.getConf.getAll.foreach(x => println("key: " + x._1 + " value: " + x._2))
+    val df = spark.read.format("kafka").option("kafka.bootstrap.servers", "spark-master-1:6667").option("subscribe", spark.sparkContext.getConf.get("spark.filter.topic_name")).option("failOnDataLoss","false").option("startingOffsets",if (offset == "earliest") s"earliest" else s""" {"${spark.sparkContext.getConf.get("spark.filter.topic_name")}": {"0":$offset}}""").load()
 
     df.show(10)
 
-
-    println("count " + df.count())
     val json: Dataset[String] = df.select(col("value").cast("string")).as[String]
 
     val getData = udf { (timestamp: Long) =>
