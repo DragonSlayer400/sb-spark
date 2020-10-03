@@ -10,7 +10,7 @@ object agg {
 
     val df = spark.readStream.format("kafka")
       .option("kafka.bootstrap.servers", "spark-master-1:6667")
-      .option("subscribe", "denis_nurdinov")
+      .option("subscribe", "lab04b_input_data")
       .option("startingOffsets", "earliest")
       .option("maxOffsetsPerTrigger","5000").load()
 
@@ -47,7 +47,7 @@ object agg {
       .trigger(Trigger.Once())
       .outputMode("complete")
       .format("kafka")
-      .option("checkpointLocation", s"chk/$chkName")
+      //.option("checkpointLocation", s"chk/$chkName")
       .option("kafka.bootstrap.servers","spark-master-1:6667")
       .option("topic","denis_nurdinov_lab04b_out")
       .start().awaitTermination()
