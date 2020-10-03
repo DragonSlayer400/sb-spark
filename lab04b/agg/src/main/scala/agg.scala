@@ -42,12 +42,12 @@ object agg {
       .select(col("window.start").cast("long").as("start_ts"),col("window.end").cast("long").as("end_ts"),'revenue,'visitors,'purchases, ('revenue/'purchases).as("aov"))
       .toJSON
       .writeStream
-      .trigger(Trigger.Once())
+      .trigger(Trigger.ProcessingTime("10 seconds"))
       .outputMode("update")
       .format("kafka")
       .option("checkpointLocation", s"chk/$chkName")
       .option("kafka.bootstrap.servers","spark-master-1:6667")
-      .option("subscribe","denis_nurdinov_lab04b_out")
+      .option("topic","denis_nurdinov_lab04b_out")
       .start().awaitTermination()
   }
 }
