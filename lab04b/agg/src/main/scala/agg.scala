@@ -10,7 +10,7 @@ object agg {
 
     val df = spark.readStream.format("kafka")
       .option("kafka.bootstrap.servers", "spark-master-1:6667")
-      .option("subscribe", "lab04b_input_data")
+      .option("subscribe", "denis_nurdinov")
       .option("startingOffsets", "earliest")
       .option("maxOffsetsPerTrigger","5000").load()
 
