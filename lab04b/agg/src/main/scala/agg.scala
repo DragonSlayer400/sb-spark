@@ -38,8 +38,8 @@ object agg {
       .select(('timestamp/1000).cast("timestamp").as("timestamp"),'event_type,'category,'item_id,'item_price,'uid)
       .withWatermark("timestamp", "1 hour")
       .groupBy(window($"timestamp", "1 hour","1 hour"))
-      .agg(sum("item_price").as("revenue"),count('event_type === "buy").as("purchases"),count(col("uid").isNotNull).as("visitors"))
-      .select(col("window.start").cast("long").as("start_ts"),col("window.end").cast("long").as("end_ts"),'revenue,'visitors,'purchases, ('revenue/'purchases).as("aov"))
+      .agg(sum(when('event_type === "buy",col("item_price"))).as("revenue"),count('event_type === "buy").as("purchases"),count(col("uid").isNotNull).as("visitors"))
+      .select(col("window.start").cast("long").as("start_ts"),col("window.end").cast("long").as("end_ts"),'revenue,'visitors,'purchases, ('revenue.cast("double")/'purchases.cast("double")).as("aov"))
       .toJSON
       .writeStream
       .trigger(Trigger.ProcessingTime("10 seconds"))
