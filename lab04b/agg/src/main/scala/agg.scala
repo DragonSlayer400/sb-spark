@@ -31,14 +31,13 @@ object agg {
       .add("item_price", DataTypes.IntegerType, nullable = true)
       .add("uid", DataTypes.StringType, nullable = true)
       .add("timestamp", DataTypes.LongType, nullable = true)
-
     df
       .select(from_json('value.cast("string"),schema).as("data"))
       .select("data.*")
       .select(('timestamp/1000).cast("timestamp").as("timestamp"),'event_type,'category,'item_id,'item_price,'uid)
       .withWatermark("timestamp", "1 hour")
       .groupBy(window($"timestamp", "1 hour","1 hour"))
-      .agg(sum(when('event_type === "buy",col("item_price"))).as("revenue"),count('event_type === "buy").as("purchases"),count(col("uid").isNotNull).as("visitors"))
+      .agg(sum(when('event_type === "buy",col("item_price"))).as("revenue"),count(when('event_type === "buy", 'event_type)).as("purchases"),count(col("uid").isNotNull).as("visitors"))
       .select(col("window.start").cast("long").as("start_ts"),col("window.end").cast("long").as("end_ts"),'revenue,'visitors,'purchases, ('revenue.cast("double")/'purchases.cast("double")).as("aov"))
       .toJSON
       .writeStream
