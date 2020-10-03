@@ -42,7 +42,7 @@ object agg {
       .select(col("window.start").cast("long").as("start_ts"),col("window.end").cast("long").as("end_ts"),'revenue,'visitors,'purchases, ('revenue.cast("double")/'purchases.cast("double")).as("aov"))
       .toJSON
       .writeStream
-      .trigger(Trigger.ProcessingTime("10 seconds"))
+      .trigger(Trigger.ProcessingTime("30 seconds"))
       .outputMode("update")
       .format("kafka")
       .option("checkpointLocation", s"chk/$chkName")
