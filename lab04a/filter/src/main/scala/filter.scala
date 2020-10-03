@@ -24,10 +24,10 @@ object filter {
 
 
 
-    parsed.filter(col("event_type") === "view")
-      .write.partitionBy("date_rep").mode("overwrite").json(spark.sparkContext.getConf.get("spark.filter.output_dir_prefix") + "/view/")
-    parsed.filter(col("event_type") === "buy")
-      .write.partitionBy("date_rep").mode("overwrite").json(spark.sparkContext.getConf.get("spark.filter.output_dir_prefix") + "/buy/")
+    //parsed.filter(col("event_type") === "view")
+   //   .write.partitionBy("date_rep").mode("overwrite").json(spark.sparkContext.getConf.get("spark.filter.output_dir_prefix") + "/view/")
+   // parsed.filter(col("event_type") === "buy")
+    //  .write.partitionBy("date_rep").mode("overwrite").json(spark.sparkContext.getConf.get("spark.filter.output_dir_prefix") + "/buy/")
 
     spark.stop()
 
