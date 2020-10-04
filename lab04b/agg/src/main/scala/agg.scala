@@ -5,27 +5,29 @@ import org.apache.spark.sql.streaming.{OutputMode, Trigger}
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.types.{DataTypes, StructType, TimestampType}
 object agg {
-  val spark = SparkSession.builder().getOrCreate()
-  def main(args: Array[String]): Unit = {
 
+  def main(args: Array[String]): Unit = {
+    val spark = SparkSession.builder().getOrCreate()
     val df = spark.readStream.format("kafka")
-      .option("kafka.bootstrap.servers", "spark-master-1:6667")
-      .option("subscribe", "denis_nurdinov")
-      .option("startingOffsets", "earliest")
-      .option("maxOffsetsPerTrigger","5000")
-      .option("failOnDataLoss","false")
+      .options(
+        Map(
+          "kafka.bootstrap.servers" -> "spark-master-1:6667",
+          "subscribe" -> "denis_nurdinov",
+          "maxOffsetsPerTrigger" -> "5000",
+          "startingOffsets" -> "earliest"
+        )
+      )
       .load()
 
-    saveLogs("lab04b",df)
+    saveLogs("lab04b",df,spark).start()
 
-
+    spark.streams.awaitAnyTermination()
     spark.close()
 
   }
 
-  def saveLogs(chkName: String, df: DataFrame) = {
+  def saveLogs(chkName: String, df: DataFrame,spark: SparkSession) = {
     import spark.implicits._
-
     val schema = new StructType()
       .add("event_type", DataTypes.StringType, nullable = true)
       .add("category", DataTypes.StringType, nullable = true)
@@ -36,39 +38,37 @@ object agg {
     df
       .select(from_json('value.cast("string"),schema).as("data"))
       .select("data.*")
-      .select(
-        ('timestamp/1000).cast(TimestampType).as("timestamp"),
-        'event_type,
-        'category,
-        'item_id,
-        'item_price,
-        'uid
-      )
-      .withWatermark("timestamp", "1 hour")
-      .groupBy(window($"timestamp", "1 hour","1 hour"))
+      .withColumn("timestamp_cast", (col("timestamp")/1000).cast(TimestampType))
+      .withWatermark("timestamp_cast","1 hour")
+      .groupBy(window($"timestamp_cast", "1 hour","1 hour"))
       .agg(
-          sum(when('event_type === "buy",
-          col("item_price"))).as("revenue"),
-          count(when('event_type === "buy",true)).as("purchases"),
-          count(when(col("uid").isNotNull,true)).as("visitors")
+        sum(when('event_type === "buy", col("item_price").as("item_price_agg"))).as("revenue"),
+        count(when(col("event_type") === "buy",true)).as("purchases"),
+        count(when(col("uid").isNotNull,true)).as("visitors")
       )
-      .withColumn("aov",'revenue/'purchases)
+      .withColumn(
+        "aov",
+        col("revenue").cast(DataTypes.DoubleType)/col("purchases").cast(DataTypes.DoubleType)
+      )
       .select(
         unix_timestamp(col("window.start")).as("start_ts"),
         unix_timestamp(col("window.end")).as("end_ts"),
-        'revenue,
-        'visitors,
-        'purchases,
-        'aov
+        col("revenue"),
+        col("visitors"),
+        col("purchases"),
+        col("aov")
       )
       .toJSON
       .writeStream
       .trigger(Trigger.ProcessingTime("5 seconds"))
       .format("kafka")
-      .option("checkpointLocation", s"chk/$chkName")
-      .option("kafka.bootstrap.servers","spark-master-1:6667")
-      .option("topic","denis_nurdinov_lab04b_out")
+      .options(
+        Map(
+          "kafka.bootstrap.servers" -> "spark-master-1:6667:6667",
+          "topic" -> "denis_nurdinov_lab04b_out",
+          "checkpointLocation" -> "chk/lab04b"
+        )
+      )
       .outputMode(OutputMode.Update())
-      .start().awaitTermination()
   }
 }
