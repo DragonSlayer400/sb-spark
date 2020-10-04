@@ -64,7 +64,7 @@ object agg {
       .format("kafka")
       .options(
         Map(
-          "kafka.bootstrap.servers" -> "spark-master-1:6667:6667",
+          "kafka.bootstrap.servers" -> "spark-master-1:6667",
           "topic" -> "denis_nurdinov_lab04b_out",
           "checkpointLocation" -> "chk/lab04b"
         )
