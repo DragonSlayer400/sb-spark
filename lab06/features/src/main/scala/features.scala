@@ -7,16 +7,15 @@ import org.apache.spark.sql.functions._
 
 object features {
   def main(args: Array[String]): Unit = {
-
-    //val sparkConf = new SparkConf().setAppName("lab06").setMaster("local[*]")
-    //val spark = SparkSession.builder().config(sparkConf).getOrCreate()
+//        val sparkConf = new SparkConf().setAppName("lab06").setMaster("local[*]")
+//        val spark = SparkSession.builder().config(sparkConf).getOrCreate()
 
     val spark = SparkSession.builder().getOrCreate()
     val pathWebLogs = "/labs/laba03//weblogs.json"
     val userItemsPath = "/user/denis.nurdinov/users-items/20200429"
 
-    // val pathWebLogs = "C:\\Users\\denis\\Desktop\\laba03\\weblogs.json"
-   // val userItemsPath = "C:\\Users\\denis\\Desktop\\users-items\\20200429";
+//    val pathWebLogs = "C:\\Users\\denis\\Desktop\\laba03\\weblogs.json"
+//    val userItemsPath = "C:\\Users\\denis\\Desktop\\users-items\\20200429";
 
     val weblogs_schema = spark.read.json(pathWebLogs).schema.json
     val newSchema = DataType.fromJson(weblogs_schema).asInstanceOf[StructType]
@@ -28,11 +27,6 @@ object features {
       .withColumn("domain", regexp_replace(col("host"), "www.", ""))
       .select(col("uid"),col("timestamp"),col("domain")).na.drop("any")
 
-
-
-    usersLogs.filter(col("uid") === "d502331d-621e-4721-ada2-5d30b2c3801f").show(10)
-
-
     val domain_1000 = usersLogs
       .groupBy(col("domain"))
       .count
@@ -42,17 +36,17 @@ object features {
       .orderBy(col("domain").asc)
       .select(col("domain"))
 
-    val userCountDay = usersLogs.select(col("uid"),date_format(to_utc_timestamp((col("timestamp") / 1000).cast(TimestampType), "Europe/Moscow"),"EEE").as("day")).groupBy(col("uid")).pivot(col("day")).count().na.fill(0)
 
+    val userCountDayNoName = usersLogs.select(col("uid"),date_format(to_utc_timestamp((col("timestamp") / 1000).cast(TimestampType), "Europe/Moscow"),"EEE").as("day")).groupBy(col("uid")).pivot(col("day")).count().na.fill(0)
+    val userCountDay = userCountDayNoName.select(col("uid"),col("mon"),col("tue"),col("wed"), col("thu"), col("fri"), col("sat"), col("sun"))
 
     val userCountHour = usersLogs.select(col("uid"), hour(to_utc_timestamp((col("timestamp") / 1000).cast(TimestampType), "Europe/Moscow")).as("hour")).groupBy(col("uid")).pivot(col("hour")).count().na.fill(0)
       .withColumn("web_work_hours", col("9")+col("10")+col("11")+col("12")+col("13")+col("14")+col("15")+col("16")+col("17"))
-      .withColumn("web_evening_hours", col("18")+col("19")+col("20")+col("21")+col("22")+col("23"))
+      .withColumn("web_evening_hours", col("18")+col("19")+col("20") + col("21")+col("22")+col("23"))
       .withColumn("web_all_hours", col("web_work_hours") + col("web_evening_hours") + col("0") + col("1") + col("2") + col("3") + col("4") + col("5") + col("6") + col("7") + col("8"))
-      .withColumn("web_fraction_work_hours", col("web_work_hours").cast(DataTypes.DoubleType) / col("web_all_hours").cast(DataTypes.DoubleType))
-      .withColumn("web_fraction_evening_hours", col("web_evening_hours").cast(DataTypes.DoubleType) / col("web_all_hours").cast(DataTypes.DoubleType))
+      .withColumn("web_fraction_work_hours", col("web_work_hours") / col("web_all_hours"))
+      .withColumn("web_fraction_evening_hours", col("web_evening_hours") / col("web_all_hours"))
       .drop(col("web_work_hours")).drop(col("web_evening_hours")).drop(col("web_all_hours"))
-
 
     val renamedColumnHours = userCountHour.columns.map(name => col(name).as(s"web_hour_$name"))
 
@@ -72,9 +66,7 @@ object features {
 
     val domainUidFeature = domain_uid.select(col("uid"), array(domain_uid.columns.drop(1).map(c => col(s"`$c`")):_*).alias("domain_features"))
 
-    val result = userCountDay.join(userHours, Seq("uid"), "left").join(domainUidFeature, Seq("uid"), "left").join(userItems, Seq("uid"), "left").na.fill(0)
-
+    val result = userHours.join(userDays, Seq("uid"), "left").join(domainUidFeature, Seq("uid"), "left").join(userItems, Seq("uid"), "left").na.fill(0)
     result.write.mode("overwrite").parquet("/user/denis.nurdinov/features")
-
   }
 }
