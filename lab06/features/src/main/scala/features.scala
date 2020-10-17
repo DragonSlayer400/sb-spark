@@ -9,7 +9,7 @@ object features {
     val spark = SparkSession.builder().getOrCreate()
     import spark.implicits._
     val pathWebLogs = "/labs/laba03/weblogs.json"
-    val pathUsersItemsMatrix = "/user/denis.nurdinov/users-items/20200429";
+    val pathUsersItemsMatrix = "/user/denis.nurdinov/users-items/20200429/*";
     val outputPath = "/user/denis.nurdinov/features";
 
     val weblogs_schema = spark.read.json(pathWebLogs).schema.json
@@ -119,7 +119,9 @@ object features {
       .withColumn("web_fraction_evening_hours", col("web_evening_hours") / col("cnt_uid"))
       .drop("web_work_hours","web_evening_hours","cnt_uid")
 
-      usersItems.join(result.join(uid_data_transform_agg, Seq("uid")), Seq("uid")).write.parquet(outputPath)
+    val res = usersItems.join(result, Seq("uid"), "left")
+    val res_2 = res.join(uid_data_transform_agg, Seq("uid"), "left")
+    res_2.write.mode("overwrite").parquet("features")
 
   }
 }
