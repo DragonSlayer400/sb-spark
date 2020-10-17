@@ -7,9 +7,17 @@ import org.apache.spark.sql.functions._
 
 object features {
   def main(args: Array[String]): Unit = {
+
+    //val sparkConf = new SparkConf().setAppName("lab06").setMaster("local[*]")
+    //val spark = SparkSession.builder().config(sparkConf).getOrCreate()
+
     val spark = SparkSession.builder().getOrCreate()
     val pathWebLogs = "/labs/laba03//weblogs.json"
-    val userItemsPath = "/user/denis.nurdinov/users-items/20200429";
+    val userItemsPath = "/user/denis.nurdinov/users-items/20200429"
+
+    // val pathWebLogs = "C:\\Users\\denis\\Desktop\\laba03\\weblogs.json"
+   // val userItemsPath = "C:\\Users\\denis\\Desktop\\users-items\\20200429";
+
     val weblogs_schema = spark.read.json(pathWebLogs).schema.json
     val newSchema = DataType.fromJson(weblogs_schema).asInstanceOf[StructType]
     val weblogs_df = spark.read.schema(newSchema).json(pathWebLogs).na.drop("any")
@@ -18,8 +26,12 @@ object features {
       .select(col("uid"),col("col.*"))
       .withColumn("host", lower(callUDF("parse_url", col("url"), lit("HOST"))))
       .withColumn("domain", regexp_replace(col("host"), "www.", ""))
-      .select(col("uid"),col("timestamp"),col("domain"))
-      .na.drop("any")
+      .select(col("uid"),col("timestamp"),col("domain")).na.drop("any")
+
+
+
+    usersLogs.filter(col("uid") === "d502331d-621e-4721-ada2-5d30b2c3801f").show(10)
+
 
     val domain_1000 = usersLogs
       .groupBy(col("domain"))
@@ -60,9 +72,7 @@ object features {
 
     val domainUidFeature = domain_uid.select(col("uid"), array(domain_uid.columns.drop(1).map(c => col(s"`$c`")):_*).alias("domain_features"))
 
-
-    val result = userItems.join(domainUidFeature, Seq("uid"), "left").join(userDays, Seq("uid"), "left").join(userHours, Seq("uid"), "left").na.fill(0)
-
+    val result = userCountDay.join(userHours, Seq("uid"), "left").join(domainUidFeature, Seq("uid"), "left").join(userItems, Seq("uid"), "left").na.fill(0)
 
     result.write.mode("overwrite").parquet("/user/denis.nurdinov/features")
 
