@@ -6,8 +6,7 @@ import org.apache.spark.sql.functions._
 
 object features {
   def main(args: Array[String]): Unit = {
-    val sparkConf = new SparkConf().setAppName("lab06").setMaster("local[*]")
-    val spark = SparkSession.builder().config(sparkConf).getOrCreate()
+    val spark = SparkSession.builder().getOrCreate()
     import spark.implicits._
     val pathWebLogs = "/labs/laba03/weblogs.json"
     val pathUsersItemsMatrix = "/user/denis.nurdinov/users-items/20200429";
