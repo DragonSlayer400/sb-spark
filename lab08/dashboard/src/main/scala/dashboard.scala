@@ -14,7 +14,8 @@ object dashboard {
         "es.nodes" -> "10.0.0.5:9200",
         "es.batch.write.refresh" -> "false",
         "es.nodes.wan.only" -> "true",
-        "es.resource" -> "denis_nurdinov_lab08/_doc"
+        "es.net.http.auth.user" -> "",
+        "es.net.http.auth.pass" -> ""
       )
 
     //val sparkConf = new SparkConf().setAppName("lab08").setMaster("local")
@@ -40,9 +41,9 @@ object dashboard {
       .agg(collect_list("domain").alias("domains"))
 
     val agg_log_predict = model.transform(logDf).select(col("uid"),col("date"),col("predict_gender_age").as("gender_age"))
-
-
-    agg_log_predict.write.format("org.elasticsearch.spark.sql").options(esOpt).save()
+    agg_log_predict.printSchema()
+    agg_log_predict.show(10)
+    agg_log_predict.write.format("org.elasticsearch.spark.sql").options(esOpt).save("denis_nurdinov_lab08/_doc")
 
     spark.close()
   }
